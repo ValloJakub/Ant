@@ -1,4 +1,3 @@
-
 #include <windows.h>
 
 #include "world.h"
@@ -71,13 +70,11 @@ void initializeWorld(World *world, int size, int max_ants) {
     }
 }
 
-void freeWorldMemory(World *world) {
+void freeWorldMemory(World *world/*, Ant *ant*/) {
     for (int i = 0; i < world->size; i++) {
         free(world->grid[i]);
     }
     free(world->grid);
-
-    printf("Ending simulation..\n");
 }
 
 void initializeRandomBlackCells(World *world, int num_black_cells) {
@@ -96,7 +93,7 @@ void setBlackCellsManually(World *world, int x, int y) {
     }
 }
 
-void initializeRandomAnts(Ant ants[], World *world, pthread_mutex_t *mutex_ant) {
+void initializeRandomAnts(Ant ants[], World *world, bool *end, bool *stop, pthread_mutex_t *mutex_ant) {
     for (int i = 0; i < world->max_ants; i++) {
         ants[i].mutex = mutex_ant;
         int x, y;
@@ -105,6 +102,8 @@ void initializeRandomAnts(Ant ants[], World *world, pthread_mutex_t *mutex_ant) 
             y = rand() % world->size;
         } while (world->grid[x][y] == '@');  // Zabezpečuje, že mravec nezačína na mravcovi
 
+        ants[i].end = end;
+        ants[i].stop = stop;
         ants[i].lastColor = 'x';
         ants[i].x = x;
         ants[i].y = y;
@@ -187,7 +186,7 @@ void moveAnt(Ant *ant, World *world) {
     pthread_mutex_lock(ant->mutex);
 
     world->grid[ant->x][ant->y] = leavingColor;
-    // Detekcia stretu mravcov - je vymazany
+    // Detekcia stretu mravcov - je vymazaný
     if (world->grid[new_x][new_y] == '@') {
         ant->isDeleted = 1;
     }
