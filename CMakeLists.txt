@@ -5,8 +5,10 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(Langton main.c
         world.h
+        runStop.h
         ant.h
         ant.c
-        world.c)
+        world.c
+        runStop.c)
 
 target_link_libraries(Langton pthread ws2_32)
