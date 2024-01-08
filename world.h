@@ -23,7 +23,7 @@ void initializeRandomAnts(Ant ants[], World *world, bool *end, bool *stop, pthre
 void displayWorld(World *world);
 void setBlackCellsManually(World *world, int x, int y);
 
-void freeWorldMemory(World *world/*, Ant *ant*/);
+void freeWorldMemory(World *world);
 
 void saveWorldToFile(World *world, const char *filename);
 void loadWorldFromFile(World *world, const char *filename);
