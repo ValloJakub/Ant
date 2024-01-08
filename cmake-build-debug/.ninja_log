@@ -1,0 +1,5 @@
+# ninja log v5
+4	144	7260719446294455	CMakeFiles/Langton.dir/main.c.obj	51b6c941f34558
+1080	1226	7260719457064793	Langton.exe	b5bd648ad2ca8db2
+16	148	7260719446334451	CMakeFiles/Langton.dir/ant.c.obj	da6eff9e24a34fef
+11	1080	7260719455663992	CMakeFiles/Langton.dir/world.c.obj	d4c40177af0e5451
