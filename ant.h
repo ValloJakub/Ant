@@ -8,7 +8,9 @@ typedef struct ant {
     int y;
     int direction;
     int isDeleted;
+    char lastColor;
     struct World *world;
+    pthread_mutex_t *mutex;
 } Ant;
 
 void *antThread(void *arg);
