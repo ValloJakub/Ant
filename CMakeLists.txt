@@ -9,4 +9,4 @@ add_executable(Langton main.c
         ant.c
         world.c)
 
-target_link_libraries(Langton pthread)
+target_link_libraries(Langton pthread ws2_32)
