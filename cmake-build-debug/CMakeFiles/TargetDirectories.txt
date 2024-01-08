@@ -1,3 +1,3 @@
-C:/Users/jakub/OneDrive/Počítač/asdsa/Langton/cmake-build-debug/CMakeFiles/Langton.dir
-C:/Users/jakub/OneDrive/Počítač/asdsa/Langton/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/jakub/OneDrive/Počítač/asdsa/Langton/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Users/petre/Desktop/Ant/cmake-build-debug/CMakeFiles/Langton.dir
+C:/Users/petre/Desktop/Ant/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/petre/Desktop/Ant/cmake-build-debug/CMakeFiles/rebuild_cache.dir
