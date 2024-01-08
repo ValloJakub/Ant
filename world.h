@@ -6,28 +6,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-
-#define MAX_ANTS 5  // Počet mravcov
-#define STEPS_LIMIT 50 // Počet krokov do konca hry
-
-typedef struct world {
+typedef struct World {
+    int stepLimit;
+    int max_ants;
     int size;
     char **grid;
-    pthread_mutex_t mutex;
-    Ant ants[MAX_ANTS];
 } World;
 
 void moveAnt(Ant *ant, World *world);
-void initializeWorld(World *world, int size);
+
 void initializeRandomBlackCells(World *world, int num_black_cells);
-void initializeRandomAnts(World *world);
+void initializeWorld(World *world, int size, int max_ants);
+void initializeRandomAnts(Ant ants[], World *world, bool *end, bool *stop, pthread_mutex_t *mutex_ant);
 void displayWorld(World *world);
-void freeWorldMemory(World *world);
+void setBlackCellsManually(World *world, int x, int y);
 
-void setBlackCell(World *world, int x, int y);
-
-
+void freeWorldMemory(World *world/*, Ant *ant*/);
 
 void saveWorldToFile(World *world, const char *filename);
 void loadWorldFromFile(World *world, const char *filename);

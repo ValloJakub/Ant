@@ -1,11 +1,9 @@
+#include <windows.h>
+
 #include "world.h"
 #include "ant.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <windows.h>
 
 void saveWorldToFile(World *world, const char *filename) {
     FILE *file = fopen(filename, "w+");
@@ -14,21 +12,16 @@ void saveWorldToFile(World *world, const char *filename) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(file, "%d \n", world->size);
+    fprintf(file, "%d %d\n", world->size, world->max_ants);
 
     for (int i = 0; i < world->size; i++) {
         for (int j = 0; j < world->size; j++) {
-            fprintf(file, "%c ", world->grid[i][j]);
+            char outputChar = (world->grid[i][j] == '@') ? '#' : world->grid[i][j]; // Ak sa znak rovná mravcovi, do súboru to zapíše ako čierne políčko
+            fprintf(file, "%c", outputChar);
         }
         fprintf(file, "\n");
     }
     fclose(file);
-}
-
-void setBlackCell(World *world, int x, int y) {
-    if (x >= 0 && x < world->size && y >= 0 && y < world->size) {
-        world->grid[y][x] = '#';
-    }
 }
 
 void loadWorldFromFile(World *world, const char *filename) {
@@ -38,24 +31,22 @@ void loadWorldFromFile(World *world, const char *filename) {
         exit(EXIT_FAILURE);
     }
 
-    fscanf(file, "%d ", &world->size);
+    fscanf(file, "%d %d\n", &world->size, &world->max_ants);
 
-    initializeWorld(world, world->size);
+    initializeWorld(world, world->size, world->max_ants);
 
     for (int i = 0; i < world->size; i++) {
         for (int j = 0; j < world->size; j++) {
-            fscanf(file, "%c ", &world->grid[i][j]);
-          /*  if (world->grid[i][j] == '#') {
-                setBlackCell(world, j, i);
-            }*/
+            fscanf(file, "%c", &world->grid[i][j]);
         }
+        fscanf(file, "\n");
     }
     fclose(file);
 }
 
-void initializeWorld(World *world, int size) {
-    // Musí byť naopak
+void initializeWorld(World *world, int size, int max_ants) {
     world->size = size;
+    world->max_ants = max_ants;
 
     // Inicializácia mriežky (grid)
     world->grid = (char **)malloc(world->size * sizeof(char *));
@@ -74,15 +65,12 @@ void initializeWorld(World *world, int size) {
 
     for (int i = 0; i < world->size; i++) {
         for (int j = 0; j < world->size; j++) {
-            world->grid[i][j] = ' ';
+            world->grid[i][j] = '.';
         }
     }
-
-    // Inicializácia mutexu
-    pthread_mutex_init(&world->mutex, NULL);
 }
 
-void freeWorldMemory(World *world) {
+void freeWorldMemory(World *world/*, Ant *ant*/) {
     for (int i = 0; i < world->size; i++) {
         free(world->grid[i]);
     }
@@ -90,7 +78,6 @@ void freeWorldMemory(World *world) {
 }
 
 void initializeRandomBlackCells(World *world, int num_black_cells) {
-    srand(time(NULL));
     for (int k = 0; k < num_black_cells; k++) {
         int i = rand() % world->size;
         int j = rand() % world->size;
@@ -98,47 +85,51 @@ void initializeRandomBlackCells(World *world, int num_black_cells) {
     }
 }
 
-void initializeRandomAnts(World *world) {
-    for (int i = 0; i < MAX_ANTS; i++) {
+void setBlackCellsManually(World *world, int x, int y) {
+    for (int i = 0; i < world->size; ++i) {
+        for (int j = 0; j < world->size; ++j) {
+            world->grid[x][y] = '#';
+        }
+    }
+}
+
+void initializeRandomAnts(Ant ants[], World *world, bool *end, bool *stop, pthread_mutex_t *mutex_ant) {
+    for (int i = 0; i < world->max_ants; i++) {
+        ants[i].mutex = mutex_ant;
         int x, y;
         do {
             x = rand() % world->size;
             y = rand() % world->size;
-        } while (world->grid[y][x] == '@');  // Zabezpečuje, že mravec nezačína na mravcovi
+        } while (world->grid[x][y] == '@');  // Zabezpečuje, že mravec nezačína na mravcovi
 
-        world->ants[i].x = x;
-        world->ants[i].y = y;
-        world->ants[i].direction = rand() % 4; // Náhodný smer (0-3)
-        world->ants[i].isDeleted = 0;
-        world->ants[i].world = world;
+        ants[i].end = end;
+        ants[i].stop = stop;
+        ants[i].lastColor = 'x';
+        ants[i].x = x;
+        ants[i].y = y;
+        ants[i].direction = rand() % 4; // Náhodný smer (0-3)
+        ants[i].isDeleted = 0;
+        ants[i].world = world;
+        world->grid[x][y] = '@';
     }
 }
 
-// Function to set console text color
 void setConsoleColor(int color) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
-// Function to reset console text color to default
 void resetConsoleColor() {
-    setConsoleColor(7); // Assuming 7 is the default color (white on black)
+    setConsoleColor(7); // Čierna farba
 }
 
 void displayWorld(World *world) {
     for (int i = 0; i < world->size; i++) {
         for (int j = 0; j < world->size; j++) {
-            int antIndex = -1;
-            for (int k = 0; k < MAX_ANTS; k++) {
-                if (world->ants[k].x == j && world->ants[k].y == i) {
-                    antIndex = k;
-                    break;
-                }
-            }
-
-            if (antIndex != -1 && !world->ants[antIndex].isDeleted) {
+            char znak = world->grid[i][j];
+            if (znak == '@') {
                 // Reprezentácia mravca - červenou farbou
                 setConsoleColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
-                printf("@ ", 'A');
+                printf("@ ");
                 resetConsoleColor();
             } else {
                 printf("%c ", world->grid[i][j]);
@@ -152,8 +143,6 @@ void displayWorld(World *world) {
     printf("|\n");
 }
 
-int antsDead = 0;
-
 void moveAnt(Ant *ant, World *world) {
     if (ant->isDeleted == 1) {
         ant->x = -1;
@@ -161,15 +150,16 @@ void moveAnt(Ant *ant, World *world) {
         return;
     }
 
+    char leavingColor;
     // INVERZNÁ LOGIKA POHYBU
-    if (world->grid[ant->y][ant->x] == ' ') {
+    if (ant->lastColor == '.') {
         // Na bielom poli
         ant->direction = (ant->direction + 3) % 4; // Otočenie o 90° vľavo
-        world->grid[ant->y][ant->x] = '#'; // Zmena bielého pola na čierne
+        leavingColor = '#'; // Zmena bielého pola na čierne
     } else {
         // Na čiernom poli
         ant->direction = (ant->direction + 1) % 4; // Otočenie o 90° vpravo
-        world->grid[ant->y][ant->x] = ' '; // Zmena čierneho pola na biele
+        leavingColor = '.'; // Zmena čierneho pola na biele
     }
 
     // Získať novú pozíciu mravca
@@ -193,29 +183,18 @@ void moveAnt(Ant *ant, World *world) {
             break;
     }
 
-    // Detekcia stretu mravcov
-    for (int i = 0; i < MAX_ANTS; i++) {
-        if (i != ant - world->ants && world->ants[i].x == new_x && world->ants[i].y == new_y) {
-            // Stret mravcov, vymaž oboch mravcov
-            ant->isDeleted = 1;
-            world->ants[i].isDeleted = 1;
-            antsDead += 2;
+    pthread_mutex_lock(ant->mutex);
 
-            // Označenie mŕtvych mravcov
-            for (int j = 0; j < MAX_ANTS; j++) {
-                if (world->ants[j].isDeleted) {
-                    world->ants[j].x = -1;
-                    world->ants[j].y = -1;
-                }
-            }
-
-            // Kontrola či sú všetky mravce mŕtve
-            if (antsDead == MAX_ANTS) {
-                printf("All ants are dead! Ending simulation..\n");
-                exit(EXIT_SUCCESS);
-            }
-        }
+    world->grid[ant->x][ant->y] = leavingColor;
+    // Detekcia stretu mravcov - je vymazaný
+    if (world->grid[new_x][new_y] == '@') {
+        ant->isDeleted = 1;
     }
+    ant->lastColor = world->grid[new_x][new_y];
+    world->grid[new_x][new_y] = '@';
+
+    pthread_mutex_unlock(ant->mutex);
+
     // Posunutie mravca vpred
     ant->x = new_x;
     ant->y = new_y;
